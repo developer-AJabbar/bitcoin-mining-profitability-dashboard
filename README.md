@@ -265,7 +265,7 @@ The operation remained profitable throughout both extremes.
 **Abdul Jabbar Akhtar** — Data Analyst & BI Specialist | Crypto & Energy Analytics
 
 I help businesses turn complex messy data into clear decision-ready insights
-that improve profitability, efficiency, and forecasting accuracy. With 120+
+that improve profitability, efficiency, and forecasting accuracy. With many 
 successfully completed Upwork projects and deep analytical experience across
 Bitcoin mining, renewable energy, and energy sector financial modeling.
 
