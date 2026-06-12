@@ -1,0 +1,354 @@
+================================================================
+ALL DAX MEASURES — Bitcoin Mining BI Dashboard
+Copy each one: Modeling → New Measure (select MiningData first)
+================================================================
+
+
+----------------------------------------------------------------
+PAGE 1 — EXECUTIVE SUMMARY
+----------------------------------------------------------------
+
+Total Revenue =
+SUM ( MiningData[daily_revenue_usd] )
+
+
+Total Cost =
+SUM ( MiningData[total_cost_usd] )
+
+
+Gross Profit =
+[Total Revenue] - [Total Cost]
+
+
+Overall Margin % =
+DIVIDE ( [Gross Profit], [Total Revenue], 0 ) * 100
+
+
+Total BTC Mined =
+SUM ( MiningData[btc_mined_daily] )
+
+
+Profitable Days =
+CALCULATE (
+    COUNTROWS ( MiningData ),
+    MiningData[is_profitable] = 1
+)
+
+
+Avg BTC Price =
+AVERAGE ( MiningData[btc_price_usd] )
+
+
+Avg Breakeven Price =
+AVERAGE ( MiningData[breakeven_btc_price] )
+
+
+----------------------------------------------------------------
+PAGE 2 — PROFITABILITY ANALYSIS
+----------------------------------------------------------------
+
+Break-even Gap % =
+DIVIDE (
+    [Avg BTC Price] - [Avg Breakeven Price],
+    [Avg Breakeven Price],
+    0
+) * 100
+
+
+Annualized ROI % =
+AVERAGE ( MiningData[roi_annualized_pct] )
+
+
+Profit Margin % =
+AVERAGE ( MiningData[profit_margin_pct] )
+
+
+Cumulative Profit =
+CALCULATE (
+    [Gross Profit],
+    FILTER (
+        ALL ( MiningData[date] ),
+        MiningData[date] <= MAX ( MiningData[date] )
+    )
+)
+
+
+Revenue MoM % =
+VAR CurrentMonth = [Total Revenue]
+VAR PrevMonth =
+    CALCULATE (
+        [Total Revenue],
+        DATEADD ( MiningData[date], -1, MONTH )
+    )
+RETURN
+    DIVIDE ( CurrentMonth - PrevMonth, PrevMonth, 0 ) * 100
+
+
+----------------------------------------------------------------
+PAGE 3 — COST ANALYSIS
+----------------------------------------------------------------
+
+Total Electricity Cost =
+SUM ( MiningData[daily_elec_cost_usd] )
+
+
+Total Pool Fees =
+SUM ( MiningData[pool_fee_usd] )
+
+
+Total Other OPEX =
+SUM ( MiningData[opex_other_usd] )
+
+
+Electricity % of Cost =
+DIVIDE ( [Total Electricity Cost], [Total Cost], 0 ) * 100
+
+
+Cost per BTC Mined =
+DIVIDE ( [Total Cost], [Total BTC Mined], 0 )
+
+
+Avg Daily kWh =
+AVERAGE ( MiningData[daily_power_kwh] )
+
+
+Avg Electricity Rate =
+AVERAGE ( MiningData[avg_elec_cost_kwh] )
+
+
+Revenue per kWh =
+AVERAGE ( MiningData[revenue_per_kwh] )
+
+
+----------------------------------------------------------------
+PAGE 4 — FORECASTING
+----------------------------------------------------------------
+
+Revenue 30D MA =
+AVERAGEX (
+    DATESINPERIOD (
+        MiningData[date],
+        LASTDATE ( MiningData[date] ),
+        -30, DAY
+    ),
+    [Total Revenue]
+)
+
+
+Profit 30D MA =
+AVERAGEX (
+    DATESINPERIOD (
+        MiningData[date],
+        LASTDATE ( MiningData[date] ),
+        -30, DAY
+    ),
+    [Gross Profit]
+)
+
+
+Revenue YoY % =
+VAR CurrentYear =
+    CALCULATE (
+        [Total Revenue],
+        YEAR ( MAX ( MiningData[date] ) )
+            = YEAR ( MAX ( MiningData[date] ) )
+    )
+VAR PrevYear =
+    CALCULATE (
+        [Total Revenue],
+        DATEADD ( MiningData[date], -1, YEAR )
+    )
+RETURN
+    DIVIDE ( CurrentYear - PrevYear, PrevYear, 0 ) * 100
+
+
+----------------------------------------------------------------
+PAGE 5 — WHAT-IF ANALYSIS
+----------------------------------------------------------------
+
+Scenario Daily Revenue =
+'BTC Price Scenario'[BTC Price Scenario Value]
+    * AVERAGE ( MiningData[btc_mined_daily] )
+
+
+Scenario Elec Cost =
+AVERAGE ( MiningData[daily_power_kwh] )
+    * DIVIDE ( 'ElecRate'[ElecRate Value], 100 )
+
+
+Scenario Daily Profit =
+[Scenario Daily Revenue]
+    - [Scenario Elec Cost]
+    - ( [Scenario Daily Revenue] * 0.02 )
+    - ( [Scenario Daily Revenue] * 0.05 )
+
+
+Scenario Margin % =
+DIVIDE (
+    [Scenario Daily Profit],
+    [Scenario Daily Revenue],
+    0
+) * 100
+
+
+Scenario Breakeven Price =
+DIVIDE (
+    [Scenario Elec Cost] * 1.07,
+    AVERAGE ( MiningData[btc_mined_daily] ),
+    0
+)
+
+
+Scenario Annual Profit =
+[Scenario Daily Profit] * 365
+
+
+Scenario Bar Value =
+SWITCH (
+    SELECTEDVALUE ( ScenarioCompare[Category] ),
+    "Revenue", [Scenario Daily Revenue],
+    "Cost",    [Scenario Elec Cost],
+    "Profit",  [Scenario Daily Profit]
+)
+
+
+Profit At Price =
+VAR SelectedPrice =
+    SELECTEDVALUE ( 'BTCPriceRange'[Value] )
+VAR AvgBTCMined =
+    CALCULATE (
+        AVERAGE ( MiningData[btc_mined_daily] ),
+        ALL ( MiningData )
+    )
+VAR AvgPowerKwh =
+    CALCULATE (
+        AVERAGE ( MiningData[daily_power_kwh] ),
+        ALL ( MiningData )
+    )
+VAR ElecRate =
+    DIVIDE ( 'ElecRate'[ElecRate Value], 100 )
+VAR Revenue =
+    SelectedPrice * AvgBTCMined
+VAR ElecCost =
+    AvgPowerKwh * ElecRate
+VAR Profit =
+    Revenue - ElecCost
+    - ( Revenue * 0.02 )
+    - ( Revenue * 0.05 )
+RETURN
+    IF ( ISBLANK ( SelectedPrice ), BLANK (), Profit )
+
+
+Scenario Profit =
+VAR SelectedPrice =
+    SELECTEDVALUE ( ScenarioTable[BTC Price] )
+VAR AvgBTCMined =
+    CALCULATE (
+        AVERAGE ( MiningData[btc_mined_daily] ),
+        ALL ( MiningData )
+    )
+VAR AvgPowerKwh =
+    CALCULATE (
+        AVERAGE ( MiningData[daily_power_kwh] ),
+        ALL ( MiningData )
+    )
+VAR ElecRate =
+    DIVIDE ( 'ElecRate'[ElecRate Value], 100 )
+VAR Revenue =
+    SelectedPrice * AvgBTCMined
+VAR ElecCost =
+    AvgPowerKwh * ElecRate
+VAR Profit =
+    Revenue - ElecCost
+    - ( Revenue * 0.02 )
+    - ( Revenue * 0.05 )
+RETURN
+    ROUND ( Profit, 2 )
+
+
+Scenario Revenue =
+VAR SelectedPrice =
+    SELECTEDVALUE ( ScenarioTable[BTC Price] )
+VAR AvgBTCMined =
+    CALCULATE (
+        AVERAGE ( MiningData[btc_mined_daily] ),
+        ALL ( MiningData )
+    )
+VAR Revenue =
+    SelectedPrice * AvgBTCMined
+RETURN
+    ROUND ( Revenue, 2 )
+
+
+Scenario Annual =
+[Scenario Profit] * 365
+
+
+================================================================
+CALCULATED TABLES USED
+================================================================
+
+BTCPriceRange =
+GENERATESERIES ( 10000, 100000, 5000 )
+
+
+ScenarioCompare =
+DATATABLE (
+    "Category", STRING,
+    "Order",    INTEGER,
+    {
+        { "Revenue", 1 },
+        { "Cost",    2 },
+        { "Profit",  3 }
+    }
+)
+
+
+ScenarioTable =
+DATATABLE (
+    "Scenario",  STRING,
+    "BTC Price", INTEGER,
+    "Order",     INTEGER,
+    {
+        { "Bear Market", 20000, 1 },
+        { "Base Case",   40000, 2 },
+        { "Bull Market", 80000, 3 }
+    }
+)
+
+
+================================================================
+WHAT-IF PARAMETERS (Modeling → New Parameter → Numeric Range)
+================================================================
+
+Parameter 1: BTC Price Scenario
+  Minimum   : 10000
+  Maximum   : 100000
+  Increment : 1000
+  Default   : 30000
+
+Parameter 2: ElecRate
+  Minimum   : 2
+  Maximum   : 12
+  Increment : 1
+  Default   : 5
+  Note      : Divide by 100 in measures to get $/kWh
+              2 = $0.02   5 = $0.05   10 = $0.10
+
+
+================================================================
+QUICK REFERENCE — MEASURE COUNT
+================================================================
+
+  Page 1 — Executive Summary      :  8 measures
+  Page 2 — Profitability Analysis :  5 measures
+  Page 3 — Cost Analysis          :  8 measures
+  Page 4 — Forecasting            :  3 measures
+  Page 5 — What-If Analysis       : 10 measures
+  Calculated Tables               :  3 tables
+  What-If Parameters              :  2 parameters
+  ─────────────────────────────────────────────
+  Total                           : 34 measures + 5 objects
+
+
+================================================================
