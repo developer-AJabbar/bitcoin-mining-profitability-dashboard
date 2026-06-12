@@ -262,7 +262,7 @@ The operation remained profitable throughout both extremes.
 
 ## 👤 About
 
-**Danish Akhtar** — Data Analyst & BI Specialist | Crypto & Energy Analytics
+**Abdul Jabbar Akhtar** — Data Analyst & BI Specialist | Crypto & Energy Analytics
 
 I help businesses turn complex messy data into clear decision-ready insights
 that improve profitability, efficiency, and forecasting accuracy. With 120+
